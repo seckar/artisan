@@ -1762,6 +1762,7 @@ class tgraphcanvas(FigureCanvas):
         self.program_t4 = -1
         self.program_t5 = -1
         self.program_t6 = -1
+        self.program_time = None
 
         #temporary storage to pass values. Holds the power % ducty cycle of Fuji PIDs and ET-BT
         self.dutycycle = -1
@@ -35656,9 +35657,13 @@ class serialport(object):
             else:
                 p = subprocess.Popen([os.path.expanduser(c) for c in shlex.split(aw.ser.externalprogram)],env=my_env,stdout=subprocess.PIPE,startupinfo=startupinfo)
             output = p.communicate()[0].decode('UTF-8')
-            
             tx = aw.qmc.timeclock.elapsed()/1000.
-            if "," in output:
+
+            aw.qmc.program_time = None
+            if output.startswith('{'):
+              self.callprogram_parse_json(output)
+              return (aw.qmc.program_time or tx),aw.qmc.program_t1,aw.qmc.program_t2
+            elif "," in output:
                 parts = output.split(",")
                 if len(parts) > 2:
                     aw.qmc.program_t3 = float(parts[2].strip())
@@ -35674,18 +35679,48 @@ class serialport(object):
         except Exception as e:
             tx = aw.qmc.timeclock.elapsed()/1000.
             _, _, exc_tb = sys.exc_info() 
-            aw.qmc.adderror((QApplication.translate("Error Message", "Exception:",None) + " callprogram(): {0} ").format(str(e)),exc_tb.tb_lineno)
-            aw.qmc.adderror((QApplication.translate("Error Message", "callprogram() received:",None) + " {0} ").format(str(output)),exc_tb.tb_lineno)
+            aw.qmc.adderror((QApplication.translate("Error Message", "callprogram() received:",None) + " {0}; Exception: {1} ").format(str(output), repr(e)),
+                            exc_tb.tb_lineno)
             return tx,0.,0.
-            
+
+    def callprogram_parse_json(self, json_text):
+        '''
+        Parses json_text from an external sensor program into aw.qmc.program_t
+        variables. The JSON accepted:
+          - MUST have a number array named "temperatures"
+          - MAY contain a number named "read_at", which is the read time for all
+            data as number of seconds since the epoch
+        '''
+        from json import loads as json_loads  # lazy load for python <2.6 compat
+        json_obj = json_loads(json_text)
+
+        # Parse temperature array into aw.qmc.program_tN:
+        temps = json_obj['temperatures']
+        if not isinstance(temps, list):
+            raise 'JSON result does not contain "temperatures" array'
+        for temp in temps:
+            if not temp:
+                pass  # allow None
+            elif any(isinstance(temp, n) for n in (int, float)):
+                pass  # allow valid numbers
+            else:
+                raise 'Invalid temperature: "%s"' % temp
+        for i in range(min(len(temps), 6)):
+            setattr(aw.qmc, 'program_t%d' % (i + 1), temps[i])
+
+        # Check for a timestamp for the data points:
+        read_at = json_obj.get('read_at')
+        if read_at:
+            aw.qmc.program_time = aw.qmc.timeclock.elapsed_from_time(read_at)/1000.
+
     def callprogram_34(self):
-        tx = aw.qmc.timeclock.elapsed()/1000.
+        tx = aw.qmc.program_time or aw.qmc.timeclock.elapsed()/1000.
         t1 = aw.qmc.program_t3
         t2 = aw.qmc.program_t4
         return tx,t2,t1
 
     def callprogram_56(self):
-        tx = aw.qmc.timeclock.elapsed()/1000.
+        tx = aw.qmc.program_time or aw.qmc.timeclock.elapsed()/1000.
         t1 = aw.qmc.program_t5
         t2 = aw.qmc.program_t6
         return tx,t2,t1
