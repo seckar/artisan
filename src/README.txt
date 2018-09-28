@@ -88,8 +88,17 @@ Artisan uses the following libraries in unmodified forms:
   https://github.com/gijzelaerr/python-snap7 
 - arabic_reshaper.py under GPL by Abd Allah Diab (Mpcabd)
 
+On debian systems, the dependencies needed for development can be obtained by
+installing packages:
+
+```
+  python3-numpy python3-pyqt5 python3-matplotlib python3-unidecode
+  python3-serial
+```
 
 
-VERSION HISTORY
+
+
+VERSION HISTORY:
 
 See <https://github.com/artisan-roaster-scope/artisan>

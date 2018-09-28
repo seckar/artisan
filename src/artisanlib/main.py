@@ -36,6 +36,7 @@ from artisanlib import __build__
 import os
 import ast
 import platform
+import sys
 import math
 import time as libtime
 import datetime
@@ -119,16 +120,21 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 import matplotlib.backends.qt_editor.figureoptions as figureoptions
 
 
-from Phidget22.DeviceClass import DeviceClass
-from Phidget22.DeviceID import DeviceID
-from Phidget22.Devices.TemperatureSensor import TemperatureSensor as PhidgetTemperatureSensor
-from Phidget22.Devices.HumiditySensor import HumiditySensor as PhidgetHumiditySensor
-from Phidget22.Devices.PressureSensor import PressureSensor as PhidgetPressureSensor
-from Phidget22.Devices.VoltageRatioInput import *  # @UnusedWildImport
-from Phidget22.Devices.VoltageInput import * # @UnusedWildImport
-from Phidget22.Devices.DigitalInput import * # @UnusedWildImport
-from Phidget22.Devices.DigitalOutput import * # @UnusedWildImport 
-from Phidget22.Devices.VoltageOutput import * # @UnusedWildImport
+try:
+    from Phidget22.DeviceClass import DeviceClass
+    from Phidget22.DeviceID import DeviceID
+    from Phidget22.Devices.TemperatureSensor import TemperatureSensor as PhidgetTemperatureSensor
+    from Phidget22.Devices.HumiditySensor import HumiditySensor as PhidgetHumiditySensor
+    from Phidget22.Devices.PressureSensor import PressureSensor as PhidgetPressureSensor
+    from Phidget22.Devices.VoltageRatioInput import *  # @UnusedWildImport
+    from Phidget22.Devices.VoltageInput import * # @UnusedWildImport
+    from Phidget22.Devices.DigitalInput import * # @UnusedWildImport
+    from Phidget22.Devices.DigitalOutput import * # @UnusedWildImport
+    from Phidget22.Devices.VoltageOutput import * # @UnusedWildImport
+except ModuleNotFoundError as e:
+  sys.stderr.write('''Phidget22 not installed -- phidget support unavailable
+  Running with missing modules is only recommended for development.
+''')
 
 
 # fix socket.inet_pton on Windows (used by pymodbus TCP/UDP)
@@ -37322,7 +37328,9 @@ class serialport(object):
             aw.sendmessage(QApplication.translate("Message","Phidget VINT RTD 1-input detached",None))
 
     # this one is reused for the 1045 (IR), the 1051 (1xTC), TMP1100 (1xTC), and TMP1200 (1xRTD)
-    def PHIDGET1045temperature(self,deviceType=DeviceID.PHIDID_1045,retry=True):
+    def PHIDGET1045temperature(self,deviceType=None,retry=True):
+        if not deviceType:
+            deviceType = DeviceID.PHIDID_1045
         try:
             if not self.PhidgetIRSensor:
                 ser,port = self.getFirstMatchingPhidget('PhidgetTemperatureSensor',deviceType)
@@ -37484,7 +37492,9 @@ class serialport(object):
 
     # mode = 0 for probe 1 and 2; mode = 1 for probe 3 and 4; mode 2 for Ambient Temperature
     # works for the 4xTC USB_Phidget 1048 and the 4xTC VINT Phidget TMP1101
-    def PHIDGET1048temperature(self,deviceType=DeviceID.PHIDID_1048,mode=0,retry=True):
+    def PHIDGET1048temperature(self,deviceType=None,mode=0,retry=True):
+        if not deviceType:
+            deviceType = DeviceID.PHIDID_1048
         try:
             if not self.PhidgetTemperatureSensor:
                 ser = None
@@ -38183,7 +38193,9 @@ class serialport(object):
     #  - Phidget IO 6/6/6 (HUB0000): DeviceID.PHIDID_HUB0000
     #  - Phidget IO 2/2/2 (1011): DeviceID.PHIDID_1011
     # if digital is set, the digital input states are returned instead of the analog input values
-    def PHIDGET1018values(self,deviceType=DeviceID.PHIDID_1010_1013_1018_1019,mode=0, digital=False, retry=True):
+    def PHIDGET1018values(self,deviceType=None,mode=0, digital=False, retry=True):
+        if not deviceType:
+            deviceType = DeviceID.PHIDID_1010_1013_1018_1019
         try:
             if not self.PhidgetIO:
                 ser = None
